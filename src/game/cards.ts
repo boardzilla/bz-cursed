@@ -48,7 +48,8 @@ export const cards: Partial<Card>[] = [{
   treasure: false,
   name: 'Spear',
   damage: 3,
-  weaponType: 'either',
+  weaponType: 'melee',
+  versatile: true,
   itemName: 'Scroll of Purge Life',
   description: 'Instantly capture a monster’s soul when used. Ignores monster traits.'
 }, {
@@ -88,6 +89,7 @@ export const cards: Partial<Card>[] = [{
   treasure: true,
   name: 'Throwing Daggers',
   damage: 1,
+  damageChoices: [1, 6],
   weaponType: 'ranged',
   itemName: 'Large Backpack',
   description: 'Take a weapon card from the discard pile and keep it with your items for use when needed.'
@@ -97,6 +99,7 @@ export const cards: Partial<Card>[] = [{
   treasure: true,
   name: 'Dagger',
   damage: 1,
+  damageChoices: [1, 6],
   weaponType: 'melee',
   itemName: 'Mimic!',
   description: 'When drawn as an item immediately treat the Mimic as a monster with a power of 4.'

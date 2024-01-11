@@ -29,7 +29,7 @@ class CursedBoard extends Board<CursedPlayer, CursedBoard> {
   }
 
   haveBust() {
-    return this.currentDamage() > this.currentMonsterAttack() && $.encounter.all(Card, {orientation: 'weapon'}).length > 1;
+    return this.currentDamage() > this.currentMonsterAttack();
   }
 }
 
@@ -109,7 +109,7 @@ export default createGame(CursedPlayer, CursedBoard, game => {
     ),
 
     drawWeapon: () => action({
-      prompt: 'Draw a weapon'
+      prompt: 'Draw a weapon or end battle'
     }).chooseOnBoard(
       'weapon', $.draw.all(Card),
       { skipIf: 'never' }
@@ -151,61 +151,46 @@ export default createGame(CursedPlayer, CursedBoard, game => {
     bust: () => action({
       prompt: 'Discard useless weapon'
     }).do(
-      () => $.encounter.last(Card)?.putInto($.discard)
+      () => { $.encounter.last(Card)?.putInto($.discard) }
     ),
+
   });
 
   game.defineFlow(
     () => $.draw.shuffle(),
     playerActions({ actions: ['drawItem'] }),
 
+    playerActions({ actions: ['drawMonster'] }),
+
     loop(
-      playerActions({ actions: ['drawMonster'] }),
-
-      loop(
-        playerActions({
-          actions: [
-            'drawWeapon',
-            { name: 'finish', do: Do.break }
-          ]
-        }),
-
-        () => {
-          game.message(
-            "{{damage}} damage vs monster {{attack}}",
-            { damage: board.currentDamage(), attack: board.currentMonsterAttack() }
-          );
-          if (board.pendingDamage() === 0) return Do.break();
-          if (!board.haveBust()) return Do.repeat();
-          game.message("You have gone over!");
-        },
-
-        playerActions({ actions: ['bust'] })
-      ),
-
+      playerActions({
+        actions: [
+          'drawWeapon',
+          {name: 'finish', do: Do.break }
+        ]
+      }),
       () => {
-        const damage = board.pendingDamage();
-        game.message(damage === 0 ? "Perfect kill!" : `You take ${damage} damage`);
-        const monster = $.encounter.first(Card, {orientation: 'monster'});
-        monster?.putInto($.souls);
-        game.addDelay();
-        $.encounter.all(Card).putInto($.discard);
-        game.addDelay();
-        $.draw.firstN(damage, Card).putInto($.discard);
-        const souls = $.souls.all(Card).length;
-        game.message(`You have ${souls} souls`);
-        if (souls >= 8) game.finish(game.players[0]);
-
-        if (monster?.treasure) {
-          $.discard.shuffle();
-          const treasure = $.discard.first(Card);
-          if (treasure) {
-            treasure.putInto($.items);
-            treasure.orientation = 'item';
-            game.message(`You got a ${treasure}!`);
-          }
-        }
+        game.message(
+          "{{damage}} damage vs monster {{attack}}",
+          { damage: board.currentDamage(), attack: board.currentMonsterAttack() }
+        );
+        if (!board.haveBust()) Do.repeat();
+        game.message("You have gone over!");
       },
-    )
+
+      playerActions({ actions: ['bust'] }),
+    ),
+
+    () => {
+      const damage = board.pendingDamage();
+      $.encounter.all(Card, { orientation: 'monster' }).putInto($.souls);
+      game.addDelay();
+      $.encounter.all(Card).putInto($.discard);
+      game.addDelay();
+      game.message(`You take ${damage} damage`);
+      $.draw.firstN(damage, Card).putInto($.discard);
+    },
+
+    playerActions({ actions: [] })
   )
 });
