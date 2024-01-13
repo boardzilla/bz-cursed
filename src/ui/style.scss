@@ -1,7 +1,187 @@
+@import url(https://fontlibrary.org//face/gamaliel);
+
+@keyframes shake {
+  0% { transform: translate(1px, 1px) rotate(0deg); }
+  10% { transform: translate(-1px, -2px) rotate(-1deg); }
+  20% { transform: translate(-3px, 0px) rotate(1deg); }
+  30% { transform: translate(3px, 2px) rotate(0deg); }
+  40% { transform: translate(1px, -1px) rotate(1deg); }
+  50% { transform: translate(-1px, 2px) rotate(-1deg); }
+  60% { transform: translate(-3px, 1px) rotate(0deg); }
+  70% { transform: translate(3px, 1px) rotate(-1deg); }
+  80% { transform: translate(-1px, -1px) rotate(1deg); }
+  90% { transform: translate(1px, 2px) rotate(0deg); }
+  100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
+
+#game {
+  font-family: 'GamalielMedium';
+}
+
 #play-area {
   .Card {
-    background: white;
-    border: .05em solid black;
-    font-size: 80%;
+    filter: drop-shadow(.1em .1em .2em #0006);
+
+    transition: transform .2s;
+    #game:not(.browser-firefox) & {
+      perspective: 40vw;
+    }
+
+    &[data-orientation="weapon"] {
+      transform: rotate(90deg);
+    }
+    &[data-orientation="item"] {
+      transform: rotate(180deg);
+    }
+
+    &[data-image="card01.webp"] .front {
+      background-image: url(./assets/card01.webp);
+    }
+    &[data-image="card02.webp"] .front {
+      background-image: url(./assets/card02.webp);
+    }
+    &[data-image="card03.webp"] .front {
+      background-image: url(./assets/card03.webp);
+    }
+    &[data-image="card04.webp"] .front {
+      background-image: url(./assets/card04.webp);
+    }
+    &[data-image="card05.webp"] .front {
+      background-image: url(./assets/card05.webp);
+    }
+    &[data-image="card06.webp"] .front {
+      background-image: url(./assets/card06.webp);
+    }
+    &[data-image="card07.webp"] .front {
+      background-image: url(./assets/card07.webp);
+    }
+    &[data-image="card08.webp"] .front {
+      background-image: url(./assets/card08.webp);
+    }
+    &[data-image="card09.webp"] .front {
+      background-image: url(./assets/card09.webp);
+    }
+    &[data-image="card10.webp"] .front {
+      background-image: url(./assets/card10.webp);
+    }
+
+    &:not([data-name]) > div {
+      transform: rotateY(180deg);
+    }
+
+    > div {
+      width: 100%;
+      height: 100%;
+      transition: 0.6s;
+      transform-style: preserve-3d;
+      position: relative;
+
+      .front, .back {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        backface-visibility: hidden;
+        border-radius: 1em;
+        background-position: 50% 50%;
+        background-size: 120% auto;
+      }
+
+      /* front pane, placed above back */
+      .front {
+        z-index: 2;
+      }
+
+      /* back, initially hidden pane */
+      .back {
+        transform: rotateY(180deg);
+        background-image: url(./assets/back.webp);
+      }
+    }
+  }
+
+  .hp {
+    position: absolute;
+    left: 82%;
+    font-size: 200%;
+    top: -4%;
+    color: black;
+    &.hurt {
+      color: red;
+      top: -8%;
+      font-size: 300%;
+    }
+  }
+
+  #items {
+    .Card[data-orientation="item"]:hover {
+      z-index: 20;
+      transform: scale(1.6) rotate(180deg) translate(-20%, -20%);
+    }
+  }
+
+  #encounter {
+    .Card[data-actualdamage="0"] .front {
+      filter: saturate(0);
+    }
+    .Card[data-orientation="monster"]:hover {
+      z-index: 20;
+      transform: scale(1.6);
+    }
+    .Card[data-orientation="item"]:hover {
+      z-index: 20;
+      transform: scale(1.6) rotate(180deg);
+    }
+  }
+
+  #discard {
+    .Card:hover {
+      z-index: 20;
+      transform: scale(1.6) rotate(90deg);
+    }
+
+    .transform-wrapper:has(+ .transform-wrapper .Card:hover) .Card {
+      transform: translateY(-40%) scale(1.1) rotate(85deg);
+      z-index: 2;
+    }
+    .transform-wrapper:has(.Card:hover) + .transform-wrapper .Card {
+      transform: translateY(40%) scale(1.1) rotate(95deg);
+      z-index: 2;
+    }
+    .transform-wrapper:has(+ .transform-wrapper + .transform-wrapper .Card:hover) .Card {
+      transform: translateY(-60%) rotate(80deg);
+      z-index: 1;
+    }
+    .transform-wrapper:has(.Card:hover) + .transform-wrapper + .transform-wrapper .Card {
+      transform: translateY(60%) rotate(100deg);
+      z-index: 1;
+    }
+  }
+}
+
+.player-controls {
+  font-size: .8em;
+  text-align: center;
+
+  #game.mobile & {
+    font-size: 1.2em;
+  }
+
+  background: #fffcdc;
+  color: #330;
+  html.dark & {
+    background: #aa8;
+    color: #110;
+  }
+  box-shadow: inset 0 0 2em #0116, .2em .2em 1em #0008;
+  button {
+    background: #448;
+    color: #fffcdc;
+    html.dark & {
+      background: #114;
+      color: #cc9;
+    }
+    box-shadow: inset -0.2em -0.2em 0.5em -0.2em #000c, inset 0.2em 0.2em 0.5em -0.2em #fffc;
   }
 }

@@ -9,7 +9,7 @@
     },
     "watchPaths": [
       "src/ui",
-      "src/game", "node_modules/@boardzilla/core/src"
+      "src/game"
     ],
     "outDir": "build/ui"
   },
@@ -20,7 +20,7 @@
       "prod": "npm run build:game:prod"
     },
     "watchPaths": [
-      "src/game", "node_modules/@boardzilla/core/src"
+      "src/game"
     ],
     "out": "build/game/game-interface.js"
   },

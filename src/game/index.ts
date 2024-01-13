@@ -4,6 +4,7 @@ import {
   Player,
   Board,
   Do,
+  union,
 } from '@boardzilla/core';
 import { cards } from './cards.js';
 
@@ -12,6 +13,7 @@ export class CursedPlayer extends Player<CursedPlayer, CursedBoard> {
 
 class CursedBoard extends Board<CursedPlayer, CursedBoard> {
   traitTriggered: boolean = false;
+  treasureEarned: boolean = false;
   shielded: number = 0;
 
   currentDamage() {
@@ -19,11 +21,13 @@ class CursedBoard extends Board<CursedPlayer, CursedBoard> {
   }
 
   currentMonster() {
-    return $.encounter.first(Card, {orientation: 'monster'});
+    return $.encounter.first(Card, {orientation: 'monster'}) || $.encounter.first(Card, {itemName: 'Mimic!', orientation: 'item'});
   }
 
   currentMonsterAttack() {
-    return this.currentMonster()?.attack ?? 0;
+    const monster = this.currentMonster();
+    if (monster?.orientation === 'item') return 4;
+    return monster?.attack ?? 0;
   }
 
   pendingDamage() {
@@ -38,7 +42,8 @@ class CursedBoard extends Board<CursedPlayer, CursedBoard> {
 const { Space, Piece } = createBoardClasses<CursedPlayer, CursedBoard>();
 
 export class Card extends Piece {
-  orientation: 'item' | 'weapon' | 'monster' = 'weapon';
+  orientation: 'item' | 'weapon' | 'monster';
+  image: string;
 
   // item properites
   itemName: string;
@@ -58,6 +63,7 @@ export class Card extends Piece {
   trait?: string;
   traitDescription: string;
   treasure: boolean;
+  tookDamage: boolean;
 
   isPlayableItem() {
     if (this.orientation !== 'item') return false;
@@ -75,6 +81,9 @@ export class Card extends Piece {
     }
     if (this.itemName === 'Large Backpack') {
       return !this.board.haveBust() && $.discard.has(Card);
+    }
+    if (this.itemName === 'Scroll of Purge Life' || this.itemName === 'Smoke Bomb') {
+      return !!this.board.currentMonster();
     }
     return true;
   }
@@ -112,14 +121,7 @@ export class Card extends Piece {
 
   defeat() {
     this.putInto($.souls);
-    if (this.treasure) {
-      $.discard.shuffle();
-      const treasure = $.discard.first(Card);
-      if (treasure) {
-        treasure.putInto($.items);
-        this.game.message("You got a {{treasure}}", {treasure});
-      }
-    }
+    if (this.treasure && this.orientation === 'monster') this.board.treasureEarned = true;
   }
 
   toString() {
@@ -132,7 +134,7 @@ export class Card extends Piece {
 export default createGame(CursedPlayer, CursedBoard, game => {
 
   const { board, action } = game;
-  const { playerActions, loop, eachPlayer } = game.flowCommands;
+  const { playerActions, loop, whileLoop } = game.flowCommands;
 
   board.registerClasses(Card);
 
@@ -142,20 +144,21 @@ export default createGame(CursedPlayer, CursedBoard, game => {
   board.create(Space, 'draw');
   board.create(Space, 'encounter');
 
+  $.draw.setOrder('stacking');
+
   $.draw.onEnter(Card, card => {
-    //card.hideFromAll();
-    card.orientation = 'weapon';
+    card.hideFromAll();
+    card.orientation = 'monster';
   });
   $.items.onEnter(Card, card => {
-    // card.showToAll();
-    card.orientation = 'item';
+    card.showToAll();
   });
   $.encounter.onEnter(Card, card => {
     card.actualDamage = card.damage;
-    // card.showToAll();
+    card.showToAll();
   });
   $.discard.onEnter(Card, card => {
-    // card.showToAll();
+    card.showToAll();
     card.orientation = 'weapon';
   });
 
@@ -167,10 +170,14 @@ export default createGame(CursedPlayer, CursedBoard, game => {
     drawItem: () => action({
       prompt: 'Draw your starting item'
     }).chooseOnBoard(
-      'item', $.draw.all(Card),
+      'item', [$.draw.first(Card)!],
       { skipIf: 'never' }
     ).do(
-      ({ item }) => item.putInto($.items)
+      ({ item }) => {
+        item.putInto($.items)
+        item.orientation = 'item';
+        if (item.itemName === 'Mimic!') item.putInto($.encounter);
+      }
     ).message(
       'Your starting item is {{item}}'
     ),
@@ -178,7 +185,7 @@ export default createGame(CursedPlayer, CursedBoard, game => {
     drawMonster: () => action({
       prompt: 'Face a monster'
     }).chooseOnBoard(
-      'monster', $.draw.all(Card),
+      'monster', [$.draw.first(Card)!],
       { skipIf: 'never' }
     ).do(
       ({ monster }) => {
@@ -190,20 +197,20 @@ export default createGame(CursedPlayer, CursedBoard, game => {
     ),
 
     drawWeapon: () => action({
-      prompt: 'Draw a weapon'
+      prompt: 'Draw a weapon',
+      condition: !board.haveBust() && (board.currentMonster()?.trait !== 'Explodes' || !board.traitTriggered)
     }).chooseOnBoard(
-      'weapon', $.draw.all(Card),
-      { skipIf: 'never' }
+      'weapon', union($.draw.first(Card), $.items.all(Card, {orientation: 'weapon'}))
     ).do(
       ({ weapon }) => {
         weapon.putInto($.encounter);
-        weapon.orientation = 'weapon';
         if (weapon.damageChoices) {
           game.followUp({ name: 'daggerDamage', args: { weapon } });
         }
         if (weapon.versatile) {
           game.followUp({ name: 'versatileChoice', args: { weapon } });
         }
+        weapon.orientation = 'weapon';
       }
     ).message(
       'You have drawn a {{weapon}}'
@@ -237,7 +244,9 @@ export default createGame(CursedPlayer, CursedBoard, game => {
       );
     },
 
-    backup: () => action<{ item: Card }>().chooseOnBoard(
+    backup: () => action<{ item: Card }>({
+      prompt: 'Choose a weapon from your backpack'
+    }).chooseOnBoard(
       'weapon', $.discard.all(Card)
     ).do(
       ({ weapon, item }) => {
@@ -248,11 +257,13 @@ export default createGame(CursedPlayer, CursedBoard, game => {
     ),
 
     finish: () => action({
-      prompt: `Finish the fight (taking ${board.currentMonsterAttack() - board.currentDamage() - board.shielded} damage)`
+      prompt: `Finish the fight (taking ${board.currentMonsterAttack() - board.currentDamage() - board.shielded} damage)`,
+      condition: !board.haveBust(),
     }),
 
     bust: () => action({
-      prompt: 'Discard useless weapon'
+      prompt: 'Discard useless weapon',
+      condition: board.haveBust(),
     }).do(
       () => $.encounter.last(Card)?.putInto($.discard)
     ),
@@ -263,7 +274,10 @@ export default createGame(CursedPlayer, CursedBoard, game => {
     playerActions({ actions: ['drawItem'] }),
 
     loop(
-      playerActions({ actions: ['drawMonster'] }),
+      whileLoop({
+        while: () => !board.currentMonster(),
+        do: playerActions({ actions: ['drawMonster', 'useItem'] }),
+      }),
 
       () => {
         board.traitTriggered = false;
@@ -271,10 +285,15 @@ export default createGame(CursedPlayer, CursedBoard, game => {
       },
 
       loop(
+        () => board.currentMonster()!.tookDamage = false,
+
         playerActions({
+          name: 'draw',
+          prompt: 'Use weapons or items',
           actions: [
             'drawWeapon',
             'useItem',
+            'bust',
             { name: 'finish', do: Do.break }
           ]
         }),
@@ -287,9 +306,11 @@ export default createGame(CursedPlayer, CursedBoard, game => {
             { damage: board.currentDamage(), attack: board.currentMonsterAttack() }
           );
 
+          const lastWeapon = $.encounter.last(Card, {orientation: 'weapon'});
+          const currentMonster = board.currentMonster()!;
+
           if (!board.traitTriggered) {
-            const trait = board.currentMonster()!.trait;
-            const lastWeapon = $.encounter.last(Card, {orientation: 'weapon'});
+            const trait = currentMonster.trait;
             if (lastWeapon && !lastWeapon.ignoreTraits) {
 
               if (trait === 'Explodes') {
@@ -323,48 +344,52 @@ export default createGame(CursedPlayer, CursedBoard, game => {
             }
           }
 
-          if (!board.haveBust()) {
-            if (board.pendingDamage() === 0) {
-              game.addDelay();
-              return Do.break();
-            }
-            return Do.repeat();
-          }
-          game.message("You have gone over!");
-        },
-
-        playerActions({
-          prompt: "Use items or discard weapon",
-          actions: [
-            'useItem',
-            'bust',
-          ]
-        }),
-
-        () => {
           if (!board.currentMonster()) {
-            game.addDelay();
             return Do.break();
           }
-          if (board.currentMonster()?.trait === 'Explodes' && board.traitTriggered) return Do.break();
+
+          if (board.haveBust()) {
+            game.message("You have gone over!");
+          } else {
+            if (lastWeapon && lastWeapon.actualDamage > 0 && currentMonster) currentMonster.tookDamage = true;
+
+            if (board.pendingDamage() === 0) return Do.break();
+          }
         }
-      ),
+      ), // end fight loop
 
       () => {
-        const monster = $.encounter.first(Card, {orientation: 'monster'});
+        const monster = board.currentMonster();
         if (monster) {
           const damage = board.pendingDamage();
+          const hp = $.draw.all(Card).length;
           game.message(damage === 0 ? "Perfect kill!" : `You take ${damage} damage`);
-          monster.defeat();
-          game.addDelay();
           $.draw.firstN(damage, Card).putInto($.discard);
+          if (damage > hp) return game.finish();
           game.addDelay();
+          monster.defeat();
         }
         $.encounter.all(Card).putInto($.discard);
 
         const souls = $.souls.all(Card).length;
         game.message(`You have ${souls} souls`);
         if (souls >= 8) game.finish(game.players[0]);
+
+        if (board.treasureEarned) {
+          game.addDelay();
+          $.discard.shuffle();
+          const treasure = $.discard.first(Card);
+          if (treasure) {
+            treasure.putInto($.items);
+            treasure.orientation = 'item';
+            if (treasure.itemName === 'Mimic!') {
+              treasure.putInto($.encounter);
+            } else {
+              game.message("You got a {{treasure}}", {treasure});
+            }
+          }
+          board.treasureEarned = false;
+        }
       },
     )
   )
