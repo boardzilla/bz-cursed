@@ -1,4 +1,7 @@
-@import url(https://fontlibrary.org//face/gamaliel);
+@font-face {
+  font-family: "GamalielMedium";
+  src: url(./assets/GamalielMedium.otf);
+}
 
 @keyframes shake {
   0% { transform: translate(1px, 1px) rotate(0deg); }
@@ -157,6 +160,22 @@
       transform: translateY(60%) rotate(100deg);
       z-index: 1;
     }
+  }
+}
+
+.modal-popup {
+  background: #fffcdc;
+  color: #330;
+  html.dark & {
+    background: #aa8;
+    color: #110;
+  }
+  box-shadow: inset 0 0 2em #0116, .2em .2em 1em #0008;
+  h1 {
+    color: #909;
+  }
+  p {
+    text-align: center;
   }
 }
 

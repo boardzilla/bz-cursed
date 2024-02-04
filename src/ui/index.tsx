@@ -110,11 +110,22 @@ render(setup, {
       render: draw => <div className={'hp' + (draw.all(Card).length <= 5 ? ' hurt' : '')}>{draw.all(Card).length}</div>
     });
 
-    board.layoutStep('draw', {
+    board.layoutControls({
       element: board,
-      left: 40,
+      center: 50,
       width: 20,
       top: 0
     });
+  },
+
+  announcements: {
+    intro: () => (
+      <div>
+        <h1>You have been cursed by a witch!</h1>
+        <p>The only way to get it lifted is to take on <span style={{color: 'red'}}>monsters</span> in the nearby dark forest and gather <span style={{color: 'green'}}>souls</span> for the witch. Help her complete her ritual and she’ll lift the curse.</p>
+        <p>The curse is quickly draining your life and causes everything you touch to turn to ash within moments.</p>
+        <p> Make the best of what you find on long dead adventurers by looting thier <span style={{color: 'blue'}}>weapons</span> and <span style={{color: '#c0c'}}>items</span>.</p>
+      </div>
+    )
   }
 });

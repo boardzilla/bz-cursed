@@ -247,7 +247,8 @@ export default createGame(CursedPlayer, CursedBoard, game => {
     backup: () => action<{ item: Card }>({
       prompt: 'Choose a weapon from your backpack'
     }).chooseOnBoard(
-      'weapon', $.discard.all(Card)
+      'weapon', $.discard.all(Card),
+      { confirm: 'Select {{weapon}}' }
     ).do(
       ({ weapon, item }) => {
         item.putInto($.discard);
@@ -270,7 +271,11 @@ export default createGame(CursedPlayer, CursedBoard, game => {
   });
 
   game.defineFlow(
-    () => $.draw.shuffle(),
+    () => {
+      $.draw.shuffle();
+      game.announce('intro');
+    },
+
     playerActions({ actions: ['drawItem'] }),
 
     loop(
@@ -373,7 +378,7 @@ export default createGame(CursedPlayer, CursedBoard, game => {
 
         const souls = $.souls.all(Card).length;
         game.message(`You have ${souls} souls`);
-        if (souls >= 8) game.finish(game.players[0]);
+        if (souls >= 8) return game.finish(game.players[0]);
 
         if (board.treasureEarned) {
           game.addDelay();
