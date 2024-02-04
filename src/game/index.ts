@@ -379,6 +379,7 @@ export default createGame(CursedPlayer, CursedBoard, game => {
         const souls = $.souls.all(Card).length;
         game.message(`You have ${souls} souls`);
         if (souls >= 8) return game.finish(game.players[0]);
+        if (!$.draw.has(Card)) return game.finish();
 
         if (board.treasureEarned) {
           game.addDelay();
