@@ -17,26 +17,26 @@ render(setup, {
   settings: {
   },
 
-  layout: board => {
-    board.disableDefaultAppearance();
+  layout: game => {
+    game.disableDefaultAppearance();
 
-    board.layout($.items, {
+    game.layout($.items, {
       area: { left: 3, top: 2, width: 45, height: 45 },
     });
 
-    board.layout($.souls, {
+    game.layout($.souls, {
       area: { left: 52, top: 2, width: 45, height: 45 },
     });
 
-    board.layout($.draw, {
+    game.layout($.draw, {
       area: { left: 3, top: 52, width: 30, height: 45 },
     });
 
-    board.layout($.encounter, {
+    game.layout($.encounter, {
       area: { left: 35, top: 52, width: 30, height: 45 },
     });
 
-    board.layout($.discard, {
+    game.layout($.discard, {
       area: { left: 70, top: 52, width: 28, height: 45 },
     });
 
@@ -87,7 +87,7 @@ render(setup, {
       alignment: 'top',
     });
 
-    board.all(Card).appearance({
+    game.all(Card).appearance({
       aspectRatio: 3 / 5,
       render: () => (
         <div>
@@ -97,21 +97,21 @@ render(setup, {
       ),
     });
 
-    $.encounter.all(Card).appearance({
-      effects: [
-        {
-          attributes: { tookDamage: true },
-          className: 'shake'
-        }
-      ]
-    });
+    // $.encounter.all(Card).appearance({
+    //   effects: [
+    //     {
+    //       attributes: { tookDamage: true },
+    //       name: 'shake'
+    //     }
+    //   ]
+    // });
 
     $.draw.appearance({
       render: draw => <div className={'hp' + (draw.all(Card).length <= 5 ? ' hurt' : '')}>{draw.all(Card).length}</div>
     });
 
-    board.layoutControls({
-      element: board,
+    game.layoutControls({
+      element: game,
       center: 50,
       width: 20,
       top: 0
@@ -124,7 +124,7 @@ render(setup, {
         <h1>You have been cursed by a witch!</h1>
         <p>The only way to get it lifted is to take on <span style={{color: 'red'}}>monsters</span> in the nearby dark forest and gather <span style={{color: 'green'}}>souls</span> for the witch. Help her complete her ritual and she’ll lift the curse.</p>
         <p>The curse is quickly draining your life and causes everything you touch to turn to ash within moments.</p>
-        <p> Make the best of what you find on long dead adventurers by looting thier <span style={{color: 'blue'}}>weapons</span> and <span style={{color: '#c0c'}}>items</span>.</p>
+        <p> Make the best of what you find on long dead adventurers by looting their <span style={{color: 'blue'}}>weapons</span> and <span style={{color: '#c0c'}}>items</span>.</p>
       </div>
     )
   }
