@@ -1,17 +1,15 @@
 import {
   createGame,
-  createGameClasses,
   Player,
   Game,
+  Space,
+  Piece,
   Do,
   union,
 } from '@boardzilla/core';
 import { cards } from './cards.js';
 
-export class CursedPlayer extends Player<CursedPlayer, CursedGame> {
-};
-
-class CursedGame extends Game<CursedPlayer, CursedGame> {
+class Cursed extends Game<Cursed, Player> {
   traitTriggered: boolean = false;
   treasureEarned: boolean = false;
   shielded: number = 0;
@@ -39,9 +37,7 @@ class CursedGame extends Game<CursedPlayer, CursedGame> {
   }
 }
 
-const { Space, Piece } = createGameClasses<CursedPlayer, CursedGame>();
-
-export class Card extends Piece {
+export class Card extends Piece<Cursed> {
   orientation: 'item' | 'weapon' | 'monster';
   image: string;
 
@@ -131,12 +127,10 @@ export class Card extends Piece {
   }
 }
 
-export default createGame(CursedPlayer, CursedGame, game => {
+export default createGame(Player, Cursed, game => {
 
   const { action } = game;
   const { playerActions, loop, whileLoop } = game.flowCommands;
-
-  game.registerClasses(Card);
 
   game.create(Space, 'items');
   game.create(Space, 'souls');
@@ -236,7 +230,9 @@ export default createGame(CursedPlayer, CursedGame, game => {
     ),
 
     useItem: () => {
-      return action().chooseOnBoard(
+      return action({
+        prompt: 'Use an item'
+      }).chooseOnBoard(
         'item',
         $.items.all(Card, c => c.isPlayableItem()),
       ).do(
@@ -281,7 +277,9 @@ export default createGame(CursedPlayer, CursedGame, game => {
     loop(
       whileLoop({
         while: () => !game.currentMonster(),
-        do: playerActions({ actions: ['drawMonster', 'useItem'] }),
+        do: playerActions({
+          actions: ['drawMonster', 'useItem']
+        }),
       }),
 
       () => {
